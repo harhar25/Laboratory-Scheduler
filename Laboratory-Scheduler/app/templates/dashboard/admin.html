@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - IT Lab System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Admin Dashboard</h1>
+        <div class="btn-group">
+            <a href="{{ url_for('main.manage_labs') }}" class="btn btn-outline-primary">
+                <i class="fas fa-building me-1"></i>Manage Labs
+            </a>
+            <a href="{{ url_for('main.admin_requests') }}" class="btn btn-outline-warning">
+                <i class="fas fa-clipboard-check me-1"></i>Pending Requests
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card card-primary border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Total Laboratories
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">{{ total_labs }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card card-success border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Scheduled Sessions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">{{ total_sessions }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card card-warning border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Pending Requests
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">{{ pending_requests }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card dashboard-card card-info border-0 shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-white text-uppercase mb-1">
+                                Active Instructors
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-white">
+                                {{ instructors_count or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chalkboard-teacher fa-2x text-white-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <a href="{{ url_for('main.manage_labs') }}" class="btn btn-outline-primary w-100 h-100 py-3">
+                                <i class="fas fa-building fa-2x mb-2"></i><br>
+                                Manage Labs
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <a href="{{ url_for('main.manage_instructors') }}" class="btn btn-outline-success w-100 h-100 py-3">
+                                <i class="fas fa-chalkboard-teacher fa-2x mb-2"></i><br>
+                                Manage Instructors
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <a href="{{ url_for('main.admin_requests') }}" class="btn btn-outline-warning w-100 h-100 py-3">
+                                <i class="fas fa-clipboard-check fa-2x mb-2"></i><br>
+                                Approve Requests
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <a href="{{ url_for('reports.reports') }}" class="btn btn-outline-info w-100 h-100 py-3">
+                                <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
+                                View Reports
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Reservation Activity</h5>
+                    <a href="{{ url_for('main.schedule') }}" class="btn btn-sm btn-outline-primary">View Full Schedule</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_reservations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Lab</th>
+                                    <th>Instructor</th>
+                                    <th>Course</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reservation in recent_reservations %}
+                                <tr>
+                                    <td>{{ reservation.laboratory.name }}</td>
+                                    <td>{{ reservation.instructor.full_name }}</td>
+                                    <td>{{ reservation.course_name }} - {{ reservation.section }}</td>
+                                    <td>{{ reservation.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if reservation.status == 'approved' else 'warning' if reservation.status == 'pending' else 'danger' }}">
+                                            {{ reservation.status|title }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent reservations found.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

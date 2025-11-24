@@ -1,0 +1,808 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - IT Lab System{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Reports & Analytics</h1>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="exportReport('pdf')">
+                <i class="fas fa-file-pdf me-1"></i>Export PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel')">
+                <i class="fas fa-file-excel me-1"></i>Export Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Report Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Report Parameters</h5>
+        </div>
+        <div class="card-body">
+            <form id="reportForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Report Type</label>
+                        <select class="form-select" id="reportType" onchange="loadReport()">
+                            <option value="monthly_usage">Monthly Lab Usage</option>
+                            <option value="instructor_usage">Instructor Usage Summary</option>
+                            <option value="peak_hours">Peak Hours Analysis</option>
+                            <option value="lab_utilization">Lab Utilization Rates</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" 
+                               value="{{ (now - timedelta(days=30)).strftime('%Y-%m-%d') }}"
+                               onchange="loadReport()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" 
+                               value="{{ now.strftime('%Y-%m-%d') }}"
+                               onchange="loadReport()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-primary w-100" onclick="loadReport()">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Content -->
+    <div id="reportContent">
+        <!-- Reports will be loaded here dynamically -->
+        <div class="text-center py-5">
+            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Select a report type to begin</h4>
+            <p class="text-muted">Choose from the options above to generate reports and analytics.</p>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center py-3">
+                    <h3 id="totalReservations">0</h3>
+                    <p class="mb-0">Total Reservations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center py-3">
+                    <h3 id="totalHours">0</h3>
+                    <p class="mb-0">Total Hours</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center py-3">
+                    <h3 id="avgUtilization">0%</h3>
+                    <p class="mb-0">Avg Utilization</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center py-3">
+                    <h3 id="peakHour">N/A</h3>
+                    <p class="mb-0">Peak Hour</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Template -->
+<template id="loadingTemplate">
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted">Generating report...</p>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+let currentChart = null;
+
+// Load report based on selected parameters
+function loadReport() {
+    const reportType = document.getElementById('reportType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    // Show loading
+    const reportContent = document.getElementById('reportContent');
+    reportContent.innerHTML = document.getElementById('loadingTemplate').innerHTML;
+    
+    // Build API URL
+    const params = new URLSearchParams({
+        report_type: reportType,
+        start_date: startDate,
+        end_date: endDate
+    });
+    
+    fetch(`/api/reports/data?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            renderReport(data, reportType);
+            updateQuickStats(data.quick_stats || {});
+        })
+        .catch(error => {
+            console.error('Error loading report:', error);
+            reportContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to load report data. Please try again.
+                </div>
+            `;
+        });
+}
+
+// Render the report based on type
+function renderReport(data, reportType) {
+    const reportContent = document.getElementById('reportContent');
+    
+    switch(reportType) {
+        case 'monthly_usage':
+            renderMonthlyUsageReport(data, reportContent);
+            break;
+        case 'instructor_usage':
+            renderInstructorUsageReport(data, reportContent);
+            break;
+        case 'peak_hours':
+            renderPeakHoursReport(data, reportContent);
+            break;
+        case 'lab_utilization':
+            renderLabUtilizationReport(data, reportContent);
+            break;
+        default:
+            reportContent.innerHTML = '<div class="alert alert-warning">Unknown report type</div>';
+    }
+}
+
+// Monthly Usage Report
+function renderMonthlyUsageReport(data, container) {
+    let html = `
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Monthly Laboratory Usage</h5>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleChartView('bar')">Bar</button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleChartView('line')">Line</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="monthlyUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Usage Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Laboratory</th>
+                                        <th>Reservations</th>
+                                        <th>Total Hours</th>
+                                        <th>Utilization</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+    `;
+    
+    data.summary_data.forEach(item => {
+        html += `
+            <tr>
+                <td>${item.lab}</td>
+                <td>${item.reservations}</td>
+                <td>${item.hours}</td>
+                <td>${item.utilization}%</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Top Performing Labs</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="topLabsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Render charts
+    renderMonthlyUsageChart(data.chart_data);
+    renderTopLabsChart(data.summary_data);
+}
+
+// Instructor Usage Report
+function renderInstructorUsageReport(data, container) {
+    let html = `
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Instructor Usage Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Instructor</th>
+                                <th>Department</th>
+                                <th>Reservations</th>
+                                <th>Total Hours</th>
+                                <th>Avg Session Length</th>
+                                <th>Utilization Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    data.instructors.forEach(instructor => {
+        const avgLength = (instructor.hours / instructor.reservations).toFixed(1);
+        html += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                            <span class="text-white fw-bold small">${instructor.name[0]}</span>
+                        </div>
+                        ${instructor.name}
+                    </div>
+                </td>
+                <td>${instructor.department}</td>
+                <td>${instructor.reservations}</td>
+                <td>${instructor.hours}h</td>
+                <td>${avgLength}h</td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" style="width: ${instructor.utilization}%">
+                            ${instructor.utilization}%
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Instructor Activity</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="instructorActivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Department Distribution</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="departmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Render charts
+    renderInstructorActivityChart(data.instructors);
+    renderDepartmentChart(data.instructors);
+}
+
+// Peak Hours Report
+function renderPeakHoursReport(data, container) {
+    let html = `
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Peak Hours Analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="peakHoursChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Peak Hours Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Time Slot</th>
+                                        <th>Reservations</th>
+                                        <th>Utilization</th>
+                                        <th>Trend</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+    `;
+    
+    data.peak_data.forEach((hour, index) => {
+        const trend = index > 0 ? (hour.reservations > data.peak_data[index-1].reservations ? 'up' : 'down') : 'stable';
+        html += `
+            <tr>
+                <td>${hour.hour}:00 - ${hour.hour}:59</td>
+                <td>${hour.reservations}</td>
+                <td>${hour.utilization}%</td>
+                <td>
+                    <i class="fas fa-arrow-${trend} text-${trend === 'up' ? 'success' : 'danger'}"></i>
+                    ${trend}
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Recommendations</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Optimization Tips</h6>
+                            <ul class="mb-0">
+                                <li>Consider adding more lab sessions during peak hours (${data.recommendations.peak_hours.join(', ')}))</li>
+                                <li>Offer incentives for off-peak usage during ${data.recommendations.off_peak_hours.join(', ')}</li>
+                                <li>Current peak utilization: ${data.recommendations.peak_utilization}%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Render chart
+    renderPeakHoursChart(data.chart_data);
+}
+
+// Lab Utilization Report
+function renderLabUtilizationReport(data, container) {
+    let html = `
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Laboratory Utilization Rates</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="utilizationChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Detailed Utilization</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Laboratory</th>
+                                        <th>Capacity</th>
+                                        <th>Reservations</th>
+                                        <th>Total Hours</th>
+                                        <th>Utilization Rate</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+    `;
+    
+    data.labs.forEach(lab => {
+        const status = lab.utilization >= 80 ? 'High' : lab.utilization >= 50 ? 'Medium' : 'Low';
+        const statusClass = lab.utilization >= 80 ? 'success' : lab.utilization >= 50 ? 'warning' : 'info';
+        
+        html += `
+            <tr>
+                <td>
+                    <strong>${lab.name}</strong><br>
+                    <small class="text-muted">${lab.room_number}</small>
+                </td>
+                <td>${lab.capacity}</td>
+                <td>${lab.reservations}</td>
+                <td>${lab.hours}h</td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-${statusClass}" style="width: ${lab.utilization}%">
+                            ${lab.utilization}%
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-${statusClass}">${status}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Utilization Overview</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="utilizationPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // Render charts
+    renderUtilizationChart(data.labs);
+    renderUtilizationPieChart(data.labs);
+}
+
+// Chart rendering functions
+function renderMonthlyUsageChart(chartData) {
+    const ctx = document.getElementById('monthlyUsageChart').getContext('2d');
+    
+    if (currentChart) {
+        currentChart.destroy();
+    }
+    
+    currentChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Reservations'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly Laboratory Usage'
+                }
+            }
+        }
+    });
+}
+
+function renderTopLabsChart(summaryData) {
+    const ctx = document.getElementById('topLabsChart').getContext('2d');
+    const topLabs = summaryData.slice(0, 5);
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: topLabs.map(lab => lab.lab),
+            datasets: [{
+                data: topLabs.map(lab => lab.reservations),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function renderInstructorActivityChart(instructors) {
+    const ctx = document.getElementById('instructorActivityChart').getContext('2d');
+    const topInstructors = instructors.slice(0, 8);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: topInstructors.map(inst => inst.name.split(' ')[0]),
+            datasets: [{
+                label: 'Reservations',
+                data: topInstructors.map(inst => inst.reservations),
+                backgroundColor: '#36A2EB'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function renderDepartmentChart(instructors) {
+    const ctx = document.getElementById('departmentChart').getContext('2d');
+    const departments = {};
+    
+    instructors.forEach(inst => {
+        departments[inst.department] = (departments[inst.department] || 0) + inst.reservations;
+    });
+    
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(departments),
+            datasets: [{
+                data: Object.values(departments),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderPeakHoursChart(chartData) {
+    const ctx = document.getElementById('peakHoursChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Reservations'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hour of Day'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderUtilizationChart(labs) {
+    const ctx = document.getElementById('utilizationChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labs.map(lab => lab.name),
+            datasets: [{
+                label: 'Utilization Rate (%)',
+                data: labs.map(lab => lab.utilization),
+                backgroundColor: labs.map(lab => 
+                    lab.utilization >= 80 ? '#28a745' : 
+                    lab.utilization >= 50 ? '#ffc107' : '#17a2b8'
+                )
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Utilization Rate (%)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderUtilizationPieChart(labs) {
+    const ctx = document.getElementById('utilizationPieChart').getContext('2d');
+    
+    const categories = {
+        'High (80-100%)': labs.filter(lab => lab.utilization >= 80).length,
+        'Medium (50-79%)': labs.filter(lab => lab.utilization >= 50 && lab.utilization < 80).length,
+        'Low (0-49%)': labs.filter(lab => lab.utilization < 50).length
+    };
+    
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(categories),
+            datasets: [{
+                data: Object.values(categories),
+                backgroundColor: ['#28a745', '#ffc107', '#17a2b8']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+// Utility functions
+function toggleChartView(type) {
+    if (currentChart) {
+        currentChart.config.type = type;
+        currentChart.update();
+    }
+}
+
+function updateQuickStats(stats) {
+    document.getElementById('totalReservations').textContent = stats.total_reservations || 0;
+    document.getElementById('totalHours').textContent = stats.total_hours || 0;
+    document.getElementById('avgUtilization').textContent = stats.avg_utilization ? stats.avg_utilization + '%' : '0%';
+    document.getElementById('peakHour').textContent = stats.peak_hour || 'N/A';
+}
+
+function exportReport(format) {
+    const reportType = document.getElementById('reportType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    const params = new URLSearchParams({
+        report_type: reportType,
+        start_date: startDate,
+        end_date: endDate,
+        format: format
+    });
+    
+    showLoading(`Exporting ${format.toUpperCase()} report...`);
+    
+    fetch(`/api/reports/export?${params}`)
+        .then(response => response.blob())
+        .then(blob => {
+            hideLoading();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lab-report-${reportType}-${new Date().toISOString().split('T')[0]}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            showToast('Success', `Report exported as ${format.toUpperCase()}`, 'success');
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('Error', 'Failed to export report', 'danger');
+        });
+}
+
+// Initialize default report on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load default report
+    setTimeout(() => {
+        loadReport();
+    }, 500);
+});
+</script>
+
+<style>
+.chart-container {
+    position: relative;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
+{% endblock %}

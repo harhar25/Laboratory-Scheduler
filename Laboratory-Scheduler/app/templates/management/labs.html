@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Laboratories - IT Lab System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Manage Laboratories</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLabModal">
+            <i class="fas fa-plus me-1"></i>Add New Laboratory
+        </button>
+    </div>
+
+    <!-- Laboratories Grid -->
+    <div class="row">
+        {% for lab in labs %}
+        <div class="col-xl-4 col-lg-6 mb-4">
+            <div class="card lab-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ lab.name }}</h5>
+                    <div>
+                        <span class="badge bg-{{ 'success' if lab.is_active else 'secondary' }}">
+                            {{ 'Active' if lab.is_active else 'Inactive' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="lab-info">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <strong>Room Number:</strong><br>
+                                <span class="text-muted">{{ lab.room_number }}</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Capacity:</strong><br>
+                                <span class="text-muted">{{ lab.capacity }} students</span>
+                            </div>
+                        </div>
+                        
+                        {% if lab.equipment %}
+                        <div class="mb-3">
+                            <strong>Equipment:</strong><br>
+                            <span class="text-muted">{{ lab.equipment }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <strong>Created:</strong><br>
+                            <span class="text-muted">{{ lab.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-primary btn-sm" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#editLabModal{{ lab.id }}">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </button>
+                        <button class="btn btn-outline-{{ 'warning' if lab.is_active else 'success' }} btn-sm"
+                                onclick="toggleLabStatus({{ lab.id }}, '{{ lab.is_active|lower }}')">
+                            <i class="fas fa-{{ 'pause' if lab.is_active else 'play' }} me-1"></i>
+                            {{ 'Deactivate' if lab.is_active else 'Activate' }}
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="deleteLab({{ lab.id }}, '{{ lab.name }}')">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Lab Modal -->
+        <div class="modal fade" id="editLabModal{{ lab.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Laboratory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ url_for('main.edit_lab', lab_id=lab.id) }}" method="POST">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Laboratory Name</label>
+                                <input type="text" class="form-control" name="name" value="{{ lab.name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Room Number</label>
+                                <input type="text" class="form-control" name="room_number" value="{{ lab.room_number }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Capacity</label>
+                                <input type="number" class="form-control" name="capacity" value="{{ lab.capacity }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Equipment</label>
+                                <textarea class="form-control" name="equipment" rows="3">{{ lab.equipment }}</textarea>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" name="is_active" id="is_active{{ lab.id }}" 
+                                       {{ 'checked' if lab.is_active else '' }}>
+                                <label class="form-check-label" for="is_active{{ lab.id }}">Active</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Laboratories Found</h4>
+                    <p class="text-muted">Get started by adding your first laboratory.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLabModal">
+                        <i class="fas fa-plus me-1"></i>Add First Laboratory
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Laboratory Statistics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Laboratory Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="stat-card">
+                                <h3 class="text-primary">{{ labs|length }}</h3>
+                                <small class="text-muted">Total Labs</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="stat-card">
+                                <h3 class="text-success">{{ labs|selectattr('is_active')|list|length }}</h3>
+                                <small class="text-muted">Active Labs</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="stat-card">
+                                <h3 class="text-info">{{ total_capacity or 0 }}</h3>
+                                <small class="text-muted">Total Capacity</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="stat-card">
+                                <h3 class="text-warning">{{ utilization_rate or '0%' }}</h3>
+                                <small class="text-muted">Avg Utilization</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Lab Modal -->
+<div class="modal fade" id="addLabModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Laboratory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('main.manage_labs') }}">
+                {{ form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                        <div class="text-danger">
+                            {% for error in form.name.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.room_number.label(class="form-label") }}
+                        {{ form.room_number(class="form-control") }}
+                        {% if form.room_number.errors %}
+                        <div class="text-danger">
+                            {% for error in form.room_number.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.capacity.label(class="form-label") }}
+                        {{ form.capacity(class="form-control") }}
+                        {% if form.capacity.errors %}
+                        <div class="text-danger">
+                            {% for error in form.capacity.errors %}
+                            <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.equipment.label(class="form-label") }}
+                        {{ form.equipment(class="form-control", rows="3") }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_active(class="form-check-input", checked=true) }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleLabStatus(labId, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    const message = `Are you sure you want to ${action} this laboratory?`;
+    
+    if (confirm(message)) {
+        showLoading(`${action.charAt(0).toUpperCase() + action.slice(1)}ing laboratory...`);
+        
+        fetch(`/admin/labs/${labId}/toggle_status`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                showToast('Success', `Laboratory ${action}d successfully!`, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showToast('Error', data.message || `Failed to ${action} laboratory`, 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('Error', 'An error occurred', 'danger');
+        });
+    }
+}
+
+function deleteLab(labId, labName) {
+    if (confirm(`Are you sure you want to delete "${labName}"? This action cannot be undone and will remove all associated reservations.`)) {
+        showLoading('Deleting laboratory...');
+        
+        fetch(`/admin/labs/${labId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                showToast('Success', 'Laboratory deleted successfully!', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showToast('Error', data.message || 'Failed to delete laboratory', 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('Error', 'An error occurred while deleting the laboratory', 'danger');
+        });
+    }
+}
+
+// Search laboratories
+function searchLabs() {
+    const searchTerm = document.getElementById('labSearch').value.toLowerCase();
+    const labCards = document.querySelectorAll('.lab-card');
+    
+    labCards.forEach(card => {
+        const labName = card.querySelector('.card-header h5').textContent.toLowerCase();
+        const roomNumber = card.querySelector('.lab-info .row .col-6:first-child span').textContent.toLowerCase();
+        const equipment = card.querySelector('.lab-info .mb-3:nth-child(2) span')?.textContent.toLowerCase() || '';
+        
+        if (labName.includes(searchTerm) || roomNumber.includes(searchTerm) || equipment.includes(searchTerm)) {
+            card.parentElement.style.display = 'block';
+        } else {
+            card.parentElement.style.display = 'none';
+        }
+    });
+}
+
+// Filter laboratories by status
+function filterLabs(status) {
+    const labCards = document.querySelectorAll('.lab-card');
+    
+    labCards.forEach(card => {
+        const isActive = card.querySelector('.badge').textContent.trim() === 'Active';
+        
+        if (status === 'all') {
+            card.parentElement.style.display = 'block';
+        } else if (status === 'active' && isActive) {
+            card.parentElement.style.display = 'block';
+        } else if (status === 'inactive' && !isActive) {
+            card.parentElement.style.display = 'block';
+        } else {
+            card.parentElement.style.display = 'none';
+        }
+    });
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add search functionality if search input exists
+    const searchInput = document.getElementById('labSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchLabs);
+    }
+    
+    // Add filter functionality if filter buttons exist
+    const filterButtons = document.querySelectorAll('.lab-filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const status = this.dataset.status;
+            filterLabs(status);
+            
+            // Update active filter button
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+</script>
+{% endblock %}

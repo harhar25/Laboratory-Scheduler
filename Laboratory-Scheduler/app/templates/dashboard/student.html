@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - IT Lab System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Student Dashboard</h1>
+            <p class="text-muted mb-0">Welcome, {{ student.full_name }} ({{ student.course_section }})</p>
+        </div>
+        <a href="{{ url_for('main.schedule') }}" class="btn btn-primary">
+            <i class="fas fa-calendar-alt me-1"></i>View Full Schedule
+        </a>
+    </div>
+
+    <!-- Today's Lab Sessions -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Today's Lab Sessions ({{ student.course_section }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if today_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Laboratory</th>
+                                    <th>Course</th>
+                                    <th>Instructor</th>
+                                    <th>Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in today_sessions %}
+                                <tr>
+                                    <td>{{ session.start_time.strftime('%H:%M') }} - {{ session.end_time.strftime('%H:%M') }}</td>
+                                    <td>{{ session.laboratory.name }} ({{ session.laboratory.room_number }})</td>
+                                    <td>{{ session.course_name }}</td>
+                                    <td>{{ session.instructor.full_name }}</td>
+                                    <td>
+                                        {% set duration = (session.end_time - session.start_time).total_seconds() / 3600 %}
+                                        {{ "%.1f"|format(duration) }}h
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No lab sessions scheduled for today.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Access -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Quick Access</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.schedule') }}" class="btn btn-outline-primary btn-lg text-start">
+                            <i class="fas fa-calendar-alt me-2"></i>Weekly Schedule
+                        </a>
+                        <button class="btn btn-outline-success btn-lg text-start" data-bs-toggle="modal" data-bs-target="#labsModal">
+                            <i class="fas fa-building me-2"></i>View Laboratories
+                        </button>
+                        <button class="btn btn-outline-info btn-lg text-start" data-bs-toggle="modal" data-bs-target="#instructorsModal">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>Instructor Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Recent Notifications</h5>
+                </div>
+                <div class="card-body">
+                    {% set student_notifications = current_user.notifications[:3] %}
+                    {% if student_notifications %}
+                        {% for notification in student_notifications %}
+                        <div class="border-start border-3 border-primary ps-3 mb-3">
+                            <div class="small fw-bold">{{ notification.title }}</div>
+                            <div class="small text-muted">{{ notification.message }}</div>
+                            <div class="small text-end">
+                                <em>{{ notification.created_at.strftime('%m/%d %H:%M') }}</em>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">No recent notifications.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Laboratories Modal -->
+<div class="modal fade" id="labsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Available Laboratories</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Computer Lab 1</h6>
+                                <small class="text-muted">Room: CL-101</small><br>
+                                <small>Capacity: 30 students</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Networking Lab</h6>
+                                <small class="text-muted">Room: NL-201</small><br>
+                                <small>Capacity: 20 students</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Software Lab</h6>
+                                <small class="text-muted">Room: SL-301</small><br>
+                                <small>Capacity: 25 students</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructors Modal -->
+<div class="modal fade" id="instructorsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Instructors</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <strong>Dr. John Smith</strong><br>
+                        <small class="text-muted">Computer Science</small>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Prof. Sarah Johnson</strong><br>
+                        <small class="text-muted">Information Technology</small>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Dr. Mike Chen</strong><br>
+                        <small class="text-muted">Network Engineering</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

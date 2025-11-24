@@ -1,82 +1,476 @@
-/* Mobile First Approach */
+/* 
+ * IT Laboratory Utilization Schedule System - Responsive CSS
+ * Mobile-first responsive design system
+ */
+
+/* Mobile First Approach - Base Styles */
 @media (max-width: 576px) {
     .container-fluid {
-        padding-left: 10px;
-        padding-right: 10px;
+        padding-left: var(--space-sm);
+        padding-right: var(--space-sm);
     }
     
+    /* Typography Adjustments */
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.75rem; }
+    h3 { font-size: 1.5rem; }
+    h4 { font-size: 1.25rem; }
+    h5 { font-size: 1.125rem; }
+    h6 { font-size: 1rem; }
+    
+    /* Dashboard Cards Mobile Optimization */
     .dashboard-card .card-body {
-        padding: 1rem;
+        padding: var(--space-md);
     }
     
+    .dashboard-card .card-title {
+        font-size: 1.125rem;
+    }
+    
+    /* Button Groups Full Width */
     .btn-group {
         width: 100%;
+        flex-direction: column;
     }
     
     .btn-group .btn {
         flex: 1;
+        margin-bottom: var(--space-xs);
     }
     
-    /* Calendar mobile view */
+    .btn-group .btn:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Calendar Mobile View */
     .calendar-header {
         flex-direction: column;
+        gap: var(--space-sm);
+    }
+    
+    .calendar-grid {
+        grid-template-columns: 50px repeat(7, 1fr);
+        font-size: 0.75rem;
+    }
+    
+    .time-column, .day-column {
+        padding: var(--space-xs);
+        min-height: 45px;
+        font-size: 0.7rem;
     }
     
     .time-slots-mobile {
         max-height: 400px;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
-    /* Table responsive */
+    /* Table Responsive */
+    .table-responsive {
+        border-radius: var(--radius-md);
+    }
+    
     .table-responsive table {
         font-size: 0.875rem;
     }
     
-    /* Navigation */
-    .navbar-collapse {
-        background-color: var(--primary-color);
-        padding: 1rem;
-        margin-top: 0.5rem;
-        border-radius: 5px;
-    }
-}
-
-/* Tablet View */
-@media (min-width: 577px) and (max-width: 768px) {
-    .dashboard-card .card-body {
-        padding: 1.25rem;
+    .table th,
+    .table td {
+        padding: var(--space-sm);
     }
     
-    .calendar-grid {
-        grid-template-columns: repeat(2, 1fr);
+    /* Navigation Mobile Optimization */
+    .navbar-collapse {
+        background: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-900) 100%);
+        padding: var(--space-md);
+        margin-top: var(--space-sm);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .navbar-nav .nav-link {
+        padding: var(--space-sm);
+        margin: var(--space-xs) 0;
+    }
+    
+    /* Form Controls Mobile */
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Modal Mobile Optimization */
+    .modal-dialog {
+        margin: var(--space-sm);
+    }
+    
+    .modal-content {
+        border-radius: var(--radius-lg);
+    }
+    
+    /* Notification System Mobile */
+    .notification-system {
+        top: var(--space-md);
+        right: var(--space-md);
+        left: var(--space-md);
+        max-width: none;
+    }
+    
+    /* Utility Classes for Mobile */
+    .mobile-stack {
+        flex-direction: column;
+    }
+    
+    .mobile-center {
+        text-align: center;
+    }
+    
+    .mobile-hidden {
+        display: none !important;
+    }
+    
+    .mobile-full-width {
+        width: 100% !important;
     }
 }
 
-/* Desktop View */
+/* Small Devices (landscape phones, 577px and up) */
+@media (min-width: 577px) and (max-width: 768px) {
+    .container-fluid {
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
+    }
+    
+    /* Dashboard Cards Tablet */
+    .dashboard-card .card-body {
+        padding: var(--space-lg);
+    }
+    
+    /* Calendar Tablet View */
+    .calendar-grid {
+        grid-template-columns: 60px repeat(7, 1fr);
+        font-size: 0.8rem;
+    }
+    
+    .time-column, .day-column {
+        padding: var(--space-sm);
+        min-height: 50px;
+    }
+    
+    /* Button Groups Tablet */
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    /* Table Tablet Optimization */
+    .table-responsive table {
+        font-size: 0.9rem;
+    }
+    
+    /* Navigation Tablet */
+    .navbar-nav .nav-link {
+        padding: var(--space-sm) var(--space-md);
+    }
+    
+    /* Form Layout Tablet */
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+    }
+    
+    .form-row .col-md-6 {
+        grid-column: span 1;
+    }
+    
+    .form-row .col-12 {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Medium Devices (tablets, 769px and up) */
 @media (min-width: 769px) {
+    /* Sidebar Desktop Layout */
     .sidebar {
         position: fixed;
         top: 56px;
         bottom: 0;
         left: 0;
-        z-index: 100;
-        padding: 48px 0 0;
-        box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        z-index: var(--z-fixed);
+        padding: var(--space-xl) 0 0;
+        width: 250px;
+        background: linear-gradient(180deg, var(--gray-900) 0%, var(--gray-800) 100%);
+        box-shadow: var(--shadow-lg);
+        overflow-y: auto;
+    }
+    
+    .sidebar-sticky {
+        position: relative;
+        top: 0;
+        height: calc(100vh - 56px);
+        padding-top: var(--space-xl);
+        overflow-x: hidden;
+        overflow-y: auto;
     }
     
     .main-content {
         margin-left: 250px;
+        transition: margin-left var(--transition-normal);
+    }
+    
+    /* Sidebar Navigation */
+    .sidebar .nav-link {
+        color: var(--gray-300);
+        padding: var(--space-md) var(--space-xl);
+        margin: var(--space-xs) var(--space-md);
+        border-radius: var(--radius-md);
+        transition: all var(--transition-fast);
+        font-weight: 500;
+    }
+    
+    .sidebar .nav-link:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(4px);
+    }
+    
+    .sidebar .nav-link.active {
+        color: white;
+        background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Sidebar Collapse State */
+    .sidebar-collapsed .sidebar {
+        width: 60px;
+    }
+    
+    .sidebar-collapsed .main-content {
+        margin-left: 60px;
+    }
+    
+    .sidebar-collapsed .sidebar .nav-link span {
+        display: none;
+    }
+    
+    .sidebar-collapsed .sidebar .nav-link {
+        padding: var(--space-md);
+        justify-content: center;
+    }
+    
+    /* Enhanced Hover Effects for Desktop */
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    /* Desktop-specific animations */
+    @media (hover: hover) {
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: var(--gray-50);
+        }
+    }
+}
+
+/* Large Devices (desktops, 1024px and up) */
+@media (min-width: 1024px) {
+    .container-fluid {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    /* Enhanced Grid Layouts */
+    .grid-system {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: var(--space-lg);
+    }
+    
+    .col-lg-3 { grid-column: span 3; }
+    .col-lg-4 { grid-column: span 4; }
+    .col-lg-6 { grid-column: span 6; }
+    .col-lg-8 { grid-column: span 8; }
+    .col-lg-12 { grid-column: span 12; }
+    
+    /* Advanced Calendar Layout */
+    .calendar-advanced {
+        grid-template-columns: 80px repeat(7, 1fr);
+    }
+    
+    /* Enhanced Sidebar */
+    .sidebar {
+        width: 280px;
+    }
+    
+    .main-content {
+        margin-left: 280px;
+    }
+}
+
+/* Extra Large Devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    /* Maximum content width */
+    .container-xxl {
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+    
+    /* Enhanced Typography */
+    h1 { font-size: 3rem; }
+    h2 { font-size: 2.5rem; }
+    h3 { font-size: 2rem; }
+    
+    /* Advanced Layouts */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: var(--space-xl);
+    }
+}
+
+/* Ultra Wide Screens (1920px and up) */
+@media (min-width: 1920px) {
+    .container-fluid {
+        max-width: 1800px;
+    }
+    
+    /* Scale up components for ultra-wide screens */
+    .card {
+        padding: var(--space-xl);
+    }
+    
+    .btn {
+        padding: var(--space-md) var(--space-xl);
     }
 }
 
 /* Print Styles */
 @media print {
-    .navbar, .btn, .no-print {
+    /* Hide non-essential elements */
+    .navbar,
+    .btn,
+    .no-print,
+    .sidebar,
+    .modal,
+    .notification-system {
         display: none !important;
     }
     
+    /* Print-specific styles */
     .card {
-        border: 1px solid #000 !important;
+        border: 1px solid var(--gray-900) !important;
         box-shadow: none !important;
+        break-inside: avoid;
+    }
+    
+    .table {
+        border: 1px solid var(--gray-900);
+    }
+    
+    .table th {
+        background: var(--gray-900) !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* Ensure good contrast */
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    /* Page breaks */
+    .page-break {
+        page-break-before: always;
+    }
+    
+    .avoid-break {
+        page-break-inside: avoid;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --gray-50: #1a1a1a;
+        --gray-100: #2d2d2d;
+        --gray-200: #404040;
+        --gray-300: #525252;
+        --gray-400: #666666;
+        --gray-500: #7a7a7a;
+        --gray-600: #8f8f8f;
+        --gray-700: #a3a3a3;
+        --gray-800: #b8b8b8;
+        --gray-900: #cccccc;
+    }
+    
+    body {
+        background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+        color: var(--gray-900);
+    }
+    
+    .card {
+        background: var(--gray-100);
+        color: var(--gray-900);
+    }
+    
+    .form-control, .form-select {
+        background: var(--gray-200);
+        border-color: var(--gray-400);
+        color: var(--gray-900);
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .btn, .nav-link, .time-slot {
+        min-height: 44px; /* Minimum touch target size */
+        min-width: 44px;
+    }
+    
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Reduce animations on touch devices */
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High DPI Screen Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .dashboard-card,
+    .login-card,
+    .modal-content {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* Orientation Specific Styles */
+@media (max-width: 768px) and (orientation: landscape) {
+    .login-container {
+        padding: var(--space-md);
+    }
+    
+    .login-card {
+        max-width: 90%;
+    }
+    
+    .calendar-grid {
+        grid-template-columns: 50px repeat(7, 1fr);
+        font-size: 0.7rem;
     }
 }

@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}Approve Requests - IT Lab System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Approve Reservation Requests</h1>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary" onclick="refreshRequests()">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+            <button class="btn btn-outline-success" onclick="approveAllRequests()">
+                <i class="fas fa-check-double me-1"></i>Approve All
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center py-3">
+                    <h4>{{ requests|length }}</h4>
+                    <p class="mb-0">Pending Requests</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center py-3">
+                    <h4>{{ approved_count or 0 }}</h4>
+                    <p class="mb-0">Approved Today</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center py-3">
+                    <h4>{{ total_requests or 0 }}</h4>
+                    <p class="mb-0">Total This Week</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center py-3">
+                    <h4>{{ conflict_count or 0 }}</h4>
+                    <p class="mb-0">Conflicts Found</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requests Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Pending Reservation Requests</h5>
+        </div>
+        <div class="card-body">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                            </th>
+                            <th>Request ID</th>
+                            <th>Instructor</th>
+                            <th>Course & Section</th>
+                            <th>Laboratory</th>
+                            <th>Date & Time</th>
+                            <th>Duration</th>
+                            <th>Notes</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                        <tr class="request-row {{ 'table-warning' if request.has_conflict else '' }}" 
+                            data-request-id="{{ request.id }}">
+                            <td>
+                                <input type="checkbox" class="request-checkbox" value="{{ request.id }}">
+                            </td>
+                            <td>
+                                <strong>#{{ request.id }}</strong>
+                                <br>
+                                <small class="text-muted">{{ request.created_at.strftime('%m/%d %H:%M') }}</small>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                        <span class="text-white fw-bold small">{{ request.instructor.full_name[0]|upper }}</span>
+                                    </div>
+                                    {{ request.instructor.full_name }}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ request.course_name }}</strong>
+                                <br>
+                                <small class="text-muted">Section: {{ request.section }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ request.laboratory.name }}</strong>
+                                <br>
+                                <small class="text-muted">Room: {{ request.laboratory.room_number }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ request.start_time.strftime('%Y-%m-%d') }}</strong>
+                                <br>
+                                <small class="text-muted">{{ request.start_time.strftime('%H:%M') }} - {{ request.end_time.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                {% set duration = (request.end_time - request.start_time).total_seconds() / 3600 %}
+                                <span class="badge bg-info">{{ "%.1f"|format(duration) }}h</span>
+                            </td>
+                            <td>
+                                {% if request.notes %}
+                                <button class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="popover" 
+                                        data-bs-content="{{ request.notes }}"
+                                        data-bs-placement="left">
+                                    <i class="fas fa-sticky-note"></i>
+                                </button>
+                                {% else %}
+                                <span class="text-muted">No notes</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">Pending</span>
+                                {% if request.has_conflict %}
+                                <br>
+                                <small class="text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> Conflict
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-success btn-sm" 
+                                            onclick="approveRequest({{ request.id }})"
+                                            title="Approve Request">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" 
+                                            onclick="rejectRequest({{ request.id }})"
+                                            title="Reject Request">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button class="btn btn-info btn-sm" 
+                                            onclick="viewRequestDetails({{ request.id }})"
+                                            title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Actions -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="card bg-light">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span id="selectedCount">0</span> requests selected
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-success" onclick="bulkApprove()" disabled id="bulkApproveBtn">
+                                        <i class="fas fa-check-double me-1"></i>Approve Selected
+                                    </button>
+                                    <button class="btn btn-danger" onclick="bulkReject()" disabled id="bulkRejectBtn">
+                                        <i class="fas fa-times-circle me-1"></i>Reject Selected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Pending Requests</h4>
+                <p class="text-muted">All reservation requests have been processed.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recently Processed -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Recently Processed Requests</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Instructor</th>
+                            <th>Laboratory</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Processed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recent in recent_processed %}
+                        <tr>
+                            <td>#{{ recent.id }}</td>
+                            <td>{{ recent.instructor.full_name }}</td>
+                            <td>{{ recent.laboratory.name }}</td>
+                            <td>{{ recent.start_time.strftime('%m/%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if recent.status == 'approved' else 'danger' }}">
+                                    {{ recent.status|title }}
+                                </span>
+                            </td>
+                            <td>Admin</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                No recently processed requests
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Details Modal -->
+<div class="modal fade" id="requestDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reservation Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="requestDetailsContent">
+                <!-- Content will be loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="modalApproveBtn">Approve</button>
+                <button type="button" class="btn btn-danger" id="modalRejectBtn">Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedRequests = new Set();
+
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.request-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+        if (checkbox.checked) {
+            selectedRequests.add(cb.value);
+        } else {
+            selectedRequests.delete(cb.value);
+        }
+    });
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const selectedCount = selectedRequests.size;
+    document.getElementById('selectedCount').textContent = selectedCount;
+    
+    const bulkApproveBtn = document.getElementById('bulkApproveBtn');
+    const bulkRejectBtn = document.getElementById('bulkRejectBtn');
+    
+    if (selectedCount > 0) {
+        bulkApproveBtn.disabled = false;
+        bulkRejectBtn.disabled = false;
+    } else {
+        bulkApproveBtn.disabled = true;
+        bulkRejectBtn.disabled = true;
+    }
+}
+
+function approveRequest(requestId) {
+    if (confirm('Are you sure you want to approve this reservation request?')) {
+        showLoading('Approving request...');
+        
+        fetch(`/admin/approve_request/${requestId}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showToast('Success', 'Reservation approved successfully!', 'success');
+                    // Remove the row from the table
+                    document.querySelector(`[data-request-id="${requestId}"]`).remove();
+                    updateRequestCount();
+                } else {
+                    showToast('Error', data.message || 'Failed to approve request', 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('Error', 'An error occurred while approving the request', 'danger');
+            });
+    }
+}
+
+function rejectRequest(requestId) {
+    if (confirm('Are you sure you want to reject this reservation request?')) {
+        showLoading('Rejecting request...');
+        
+        fetch(`/admin/reject_request/${requestId}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showToast('Success', 'Reservation rejected!', 'success');
+                    // Remove the row from the table
+                    document.querySelector(`[data-request-id="${requestId}"]`).remove();
+                    updateRequestCount();
+                } else {
+                    showToast('Error', data.message || 'Failed to reject request', 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('Error', 'An error occurred while rejecting the request', 'danger');
+            });
+    }
+}
+
+function bulkApprove() {
+    if (selectedRequests.size === 0) return;
+    
+    if (confirm(`Are you sure you want to approve ${selectedRequests.size} selected requests?`)) {
+        showLoading(`Approving ${selectedRequests.size} requests...`);
+        
+        const promises = Array.from(selectedRequests).map(requestId => 
+            fetch(`/admin/approve_request/${requestId}`).then(r => r.json())
+        );
+        
+        Promise.all(promises)
+            .then(results => {
+                hideLoading();
+                const successCount = results.filter(r => r.success).length;
+                showToast('Success', `Successfully approved ${successCount} requests!`, 'success');
+                
+                // Remove approved rows
+                selectedRequests.forEach(requestId => {
+                    const row = document.querySelector(`[data-request-id="${requestId}"]`);
+                    if (row) row.remove();
+                });
+                
+                selectedRequests.clear();
+                updateBulkActions();
+                updateRequestCount();
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('Error', 'An error occurred during bulk approval', 'danger');
+            });
+    }
+}
+
+function bulkReject() {
+    if (selectedRequests.size === 0) return;
+    
+    if (confirm(`Are you sure you want to reject ${selectedRequests.size} selected requests?`)) {
+        showLoading(`Rejecting ${selectedRequests.size} requests...`);
+        
+        const promises = Array.from(selectedRequests).map(requestId => 
+            fetch(`/admin/reject_request/${requestId}`).then(r => r.json())
+        );
+        
+        Promise.all(promises)
+            .then(results => {
+                hideLoading();
+                const successCount = results.filter(r => r.success).length;
+                showToast('Success', `Successfully rejected ${successCount} requests!`, 'success');
+                
+                // Remove rejected rows
+                selectedRequests.forEach(requestId => {
+                    const row = document.querySelector(`[data-request-id="${requestId}"]`);
+                    if (row) row.remove();
+                });
+                
+                selectedRequests.clear();
+                updateBulkActions();
+                updateRequestCount();
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('Error', 'An error occurred during bulk rejection', 'danger');
+            });
+    }
+}
+
+function approveAllRequests() {
+    const allRequests = Array.from(document.querySelectorAll('.request-checkbox')).map(cb => cb.value);
+    if (allRequests.length === 0) return;
+    
+    if (confirm(`Are you sure you want to approve all ${allRequests.length} pending requests?`)) {
+        showLoading(`Approving all ${allRequests.length} requests...`);
+        
+        const promises = allRequests.map(requestId => 
+            fetch(`/admin/approve_request/${requestId}`).then(r => r.json())
+        );
+        
+        Promise.all(promises)
+            .then(results => {
+                hideLoading();
+                const successCount = results.filter(r => r.success).length;
+                showToast('Success', `Successfully approved ${successCount} requests!`, 'success');
+                
+                // Remove all rows
+                document.querySelectorAll('.request-row').forEach(row => row.remove());
+                updateRequestCount();
+            })
+            .catch(error => {
+                hideLoading();
+                showToast('Error', 'An error occurred during bulk approval', 'danger');
+            });
+    }
+}
+
+function viewRequestDetails(requestId) {
+    showLoading('Loading request details...');
+    
+    fetch(`/admin/request_details/${requestId}`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                document.getElementById('requestDetailsContent').innerHTML = data.html;
+                
+                // Set up modal buttons
+                document.getElementById('modalApproveBtn').onclick = () => {
+                    $('#requestDetailsModal').modal('hide');
+                    approveRequest(requestId);
+                };
+                document.getElementById('modalRejectBtn').onclick = () => {
+                    $('#requestDetailsModal').modal('hide');
+                    rejectRequest(requestId);
+                };
+                
+                $('#requestDetailsModal').modal('show');
+            } else {
+                showToast('Error', 'Failed to load request details', 'danger');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showToast('Error', 'An error occurred while loading details', 'danger');
+        });
+}
+
+function refreshRequests() {
+    showLoading('Refreshing requests...');
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+function updateRequestCount() {
+    const remainingRequests = document.querySelectorAll('.request-row').length;
+    if (remainingRequests === 0) {
+        // Show empty state
+        document.querySelector('.table-responsive').innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Pending Requests</h4>
+                <p class="text-muted">All reservation requests have been processed.</p>
+            </div>
+        `;
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to checkboxes
+    document.querySelectorAll('.request-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                selectedRequests.add(this.value);
+            } else {
+                selectedRequests.delete(this.value);
+                document.getElementById('selectAll').checked = false;
+            }
+            updateBulkActions();
+        });
+    });
+    
+    // Initialize popovers
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+    
+    // Check for conflicts and highlight them
+    document.querySelectorAll('.request-row.table-warning').forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#fff3cd';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+
+<style>
+.request-row.table-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.request-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

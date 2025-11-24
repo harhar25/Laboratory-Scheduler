@@ -1,0 +1,769 @@
+{% extends "base.html" %}
+
+{% block title %}New Reservation - IT Lab System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>New Laboratory Reservation</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.reservation_request') }}" id="reservationForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Laboratory Selection -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.lab_id.label(class="form-label") }}
+                                    {{ form.lab_id(class="form-select") }}
+                                    {% if form.lab_id.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.lab_id.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Select the laboratory you want to reserve</div>
+                                </div>
+                            </div>
+
+                            <!-- Course Information -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.course_name.label(class="form-label") }}
+                                    {{ form.course_name(class="form-control", placeholder="e.g., Computer Science 101") }}
+                                    {% if form.course_name.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.course_name.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Section -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.section.label(class="form-label") }}
+                                    {{ form.section(class="form-control", placeholder="e.g., CS-101-A") }}
+                                    {% if form.section.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.section.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Date and Time -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="reservationDate" 
+                                           min="{{ today.strftime('%Y-%m-%d') }}"
+                                           onchange="checkAvailability()">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.start_time.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {{ form.start_time(class="form-control", type="datetime-local") }}
+                                    </div>
+                                    {% if form.start_time.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.start_time.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.end_time.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {{ form.end_time(class="form-control", type="datetime-local") }}
+                                    </div>
+                                    {% if form.end_time.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.end_time.errors %}
+                                        <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Duration Display -->
+                            <div class="col-12">
+                                <div class="alert alert-info py-2">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Duration:</strong> 
+                                            <span id="durationDisplay">0 hours 0 minutes</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Status:</strong> 
+                                            <span id="availabilityStatus" class="badge bg-secondary">Check availability</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Lab Capacity:</strong> 
+                                            <span id="labCapacity">Select a lab</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    {{ form.notes.label(class="form-label") }}
+                                    {{ form.notes(class="form-control", rows="4", 
+                                                placeholder="Any additional information about your reservation...") }}
+                                    <div class="form-text">
+                                        Optional: Specify any special requirements, equipment needed, or other details.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Conflict Warning -->
+                            <div class="col-12">
+                                <div id="conflictAlert" class="alert alert-warning d-none">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Conflict Detected:</strong> 
+                                    <span id="conflictMessage"></span>
+                                </div>
+                            </div>
+
+                            <!-- Available Labs -->
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Available Laboratories</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="availableLabs" class="row">
+                                            <!-- Available labs will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                        <i class="fas fa-redo me-1"></i>Reset Form
+                                    </button>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-outline-primary" onclick="checkAvailability()">
+                                            <i class="fas fa-search me-1"></i>Check Availability
+                                        </button>
+                                        {{ form.submit(class="btn btn-primary") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Reservation Guide -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Reservation Guidelines</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>General Rules:</h6>
+                            <ul class="small">
+                                <li>Reservations must be made at least 24 hours in advance</li>
+                                <li>Maximum reservation duration: 4 hours per session</li>
+                                <li>You can have up to 3 pending reservations at a time</li>
+                                <li>Cancel unused reservations at least 2 hours before start time</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Lab Hours:</h6>
+                            <ul class="small">
+                                <li><strong>Monday - Friday:</strong> 8:00 AM - 7:00 PM</li>
+                                <li><strong>Saturday:</strong> 9:00 AM - 5:00 PM</li>
+                                <li><strong>Sunday:</strong> Closed</li>
+                                <li>Holidays: Special schedule applies</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Reservation Buttons -->
+            <div class="card mt-3">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-1"></i>Quick Reservation</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="btn-group w-100">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickReservation('1h')">
+                            1 Hour
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickReservation('2h')">
+                            2 Hours
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickReservation('3h')">
+                            3 Hours
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setQuickReservation('4h')">
+                            4 Hours
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Auto-fill Buttons -->
+            <div class="card mt-3">
+                <div class="card-header py-2">
+                    <h6 class="mb-0"><i class="fas fa-magic me-1"></i>Quick Fill Courses</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="btn-group flex-wrap w-100">
+                        <button type="button" class="btn btn-outline-info btn-sm auto-fill-btn" 
+                                onclick="autoFillCourse('Computer Science 101', 'CS-101-A')">
+                            CS 101-A
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm auto-fill-btn"
+                                onclick="autoFillCourse('Network Fundamentals', 'NET-201-B')">
+                            NET 201-B
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm auto-fill-btn"
+                                onclick="autoFillCourse('Database Systems', 'DB-301-C')">
+                            DB 301-C
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm auto-fill-btn"
+                                onclick="autoFillCourse('Web Development', 'WEB-401-A')">
+                            WEB 401-A
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Lab data from server
+const labData = {
+    {% for lab in form.lab_id.choices %}
+    '{{ lab[0] }}': {
+        name: "{{ lab[1] }}",
+        capacity: {{ labs[loop.index0].capacity }},
+        equipment: "{{ labs[loop.index0].equipment }}",
+        room: "{{ labs[loop.index0].room_number }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+
+let availabilityCache = {};
+
+// Initialize form
+document.addEventListener('DOMContentLoaded', function() {
+    initializeReservationForm();
+    setupEventListeners();
+    updateLabInfo();
+});
+
+function initializeReservationForm() {
+    // Set minimum datetime to current time + 1 hour
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const minDateTime = now.toISOString().slice(0, 16);
+    
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    
+    if (startTimeField) startTimeField.min = minDateTime;
+    if (endTimeField) endTimeField.min = minDateTime;
+    
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    const dateField = document.getElementById('reservationDate');
+    if (dateField) dateField.value = today;
+    
+    // Update duration initially
+    updateDuration();
+}
+
+function setupEventListeners() {
+    const labSelect = document.getElementById('lab_id');
+    const dateField = document.getElementById('reservationDate');
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    const form = document.getElementById('reservationForm');
+    
+    if (labSelect) {
+        labSelect.addEventListener('change', function() {
+            updateLabInfo();
+            checkAvailability();
+        });
+    }
+    
+    if (dateField) {
+        dateField.addEventListener('change', function() {
+            syncDateTimeFields();
+            checkAvailability();
+        });
+    }
+    
+    if (startTimeField) {
+        startTimeField.addEventListener('change', function() {
+            syncDateTimeFields();
+            updateDuration();
+            validateTimeRange();
+            checkAvailability();
+        });
+    }
+    
+    if (endTimeField) {
+        endTimeField.addEventListener('change', function() {
+            updateDuration();
+            validateTimeRange();
+            checkAvailability();
+        });
+    }
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateReservation()) {
+                e.preventDefault();
+            }
+        });
+    }
+}
+
+function updateLabInfo() {
+    const labSelect = document.getElementById('lab_id');
+    const labCapacity = document.getElementById('labCapacity');
+    
+    if (!labSelect || !labCapacity) return;
+    
+    const labId = labSelect.value;
+    const labInfo = labData[labId];
+    
+    if (labInfo) {
+        labCapacity.textContent = `${labInfo.capacity} students - ${labInfo.room}`;
+    } else {
+        labCapacity.textContent = 'Select a lab';
+    }
+}
+
+function syncDateTimeFields() {
+    const dateField = document.getElementById('reservationDate');
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    
+    if (!dateField || !startTimeField || !endTimeField) return;
+    
+    const date = dateField.value;
+    const startTime = startTimeField.value;
+    const endTime = endTimeField.value;
+    
+    if (date && startTime) {
+        const startDateTime = `${date}T${startTime.split('T')[1] || '10:00'}`;
+        startTimeField.value = startDateTime;
+    }
+    
+    if (date && endTime) {
+        const endDateTime = `${date}T${endTime.split('T')[1] || '11:00'}`;
+        endTimeField.value = endDateTime;
+    }
+}
+
+function updateDuration() {
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    const durationDisplay = document.getElementById('durationDisplay');
+    
+    if (!startTimeField || !endTimeField || !durationDisplay) return;
+    
+    const startTime = startTimeField.value;
+    const endTime = endTimeField.value;
+    
+    if (startTime && endTime) {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const durationMs = end - start;
+        
+        if (durationMs > 0) {
+            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            durationDisplay.textContent = `${hours} hours ${minutes} minutes`;
+        } else {
+            durationDisplay.textContent = 'Invalid time range';
+        }
+    } else {
+        durationDisplay.textContent = '0 hours 0 minutes';
+    }
+}
+
+function validateTimeRange() {
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    
+    if (!startTimeField || !endTimeField) return false;
+    
+    const startTime = startTimeField.value;
+    const endTime = endTimeField.value;
+    
+    if (startTime && endTime) {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const durationMs = end - start;
+        
+        if (durationMs <= 0) {
+            showTimeError('End time must be after start time');
+            return false;
+        }
+        
+        if (durationMs < 30 * 60 * 1000) { // 30 minutes
+            showTimeError('Minimum reservation duration is 30 minutes');
+            return false;
+        }
+        
+        if (durationMs > 4 * 60 * 60 * 1000) { // 4 hours
+            showTimeError('Maximum reservation duration is 4 hours');
+            return false;
+        }
+        
+        // Check lab hours
+        const startHour = start.getHours();
+        const endHour = end.getHours();
+        const dayOfWeek = start.getDay();
+        
+        if (dayOfWeek === 0) { // Sunday
+            showTimeError('Laboratory is closed on Sundays');
+            return false;
+        }
+        
+        if (dayOfWeek === 6) { // Saturday
+            if (startHour < 9 || endHour > 17) {
+                showTimeError('Saturday hours: 9:00 AM - 5:00 PM');
+                return false;
+            }
+        } else { // Weekdays
+            if (startHour < 8 || endHour > 19) {
+                showTimeError('Weekday hours: 8:00 AM - 7:00 PM');
+                return false;
+            }
+        }
+        
+        clearTimeError();
+        return true;
+    }
+    
+    return false;
+}
+
+function showTimeError(message) {
+    const statusBadge = document.getElementById('availabilityStatus');
+    if (statusBadge) {
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.textContent = message;
+    }
+}
+
+function clearTimeError() {
+    const statusBadge = document.getElementById('availabilityStatus');
+    if (statusBadge) {
+        statusBadge.className = 'badge bg-secondary';
+        statusBadge.textContent = 'Check availability';
+    }
+}
+
+function checkAvailability() {
+    const labSelect = document.getElementById('lab_id');
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    
+    if (!labSelect || !startTimeField || !endTimeField) return;
+    
+    const labId = labSelect.value;
+    const startTime = startTimeField.value;
+    const endTime = endTimeField.value;
+    
+    if (!labId || !startTime || !endTime || !validateTimeRange()) {
+        return;
+    }
+    
+    const cacheKey = `${labId}-${startTime}-${endTime}`;
+    
+    if (availabilityCache[cacheKey]) {
+        updateAvailabilityDisplay(availabilityCache[cacheKey]);
+        return;
+    }
+    
+    showLoading('Checking availability...');
+    
+    const params = new URLSearchParams({
+        lab_id: labId,
+        start_time: startTime,
+        end_time: endTime
+    });
+    
+    fetch(`/api/reservations/check_availability?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            availabilityCache[cacheKey] = data;
+            updateAvailabilityDisplay(data);
+            updateAvailableLabs(data.alternative_labs);
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error checking availability:', error);
+            showToast('Error', 'Failed to check availability', 'danger');
+        });
+}
+
+function updateAvailabilityDisplay(data) {
+    const statusBadge = document.getElementById('availabilityStatus');
+    const conflictAlert = document.getElementById('conflictAlert');
+    const conflictMessage = document.getElementById('conflictMessage');
+    
+    if (!statusBadge || !conflictAlert || !conflictMessage) return;
+    
+    if (data.available) {
+        statusBadge.className = 'badge bg-success';
+        statusBadge.textContent = 'Available';
+        conflictAlert.classList.add('d-none');
+    } else {
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.textContent = 'Not Available';
+        
+        if (data.conflicts && data.conflicts.length > 0) {
+            conflictMessage.textContent = 
+                `Conflicts with ${data.conflicts.length} existing reservation(s)`;
+            conflictAlert.classList.remove('d-none');
+        } else {
+            conflictAlert.classList.add('d-none');
+        }
+    }
+}
+
+function updateAvailableLabs(alternativeLabs) {
+    const container = document.getElementById('availableLabs');
+    if (!container) return;
+    
+    if (!alternativeLabs || alternativeLabs.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center text-muted">
+                <p class="mb-0">No alternative labs available for the selected time</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    alternativeLabs.forEach(lab => {
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <h6 class="card-title">${lab.name}</h6>
+                        <p class="card-text small mb-1">
+                            <strong>Room:</strong> ${lab.room_number}<br>
+                            <strong>Capacity:</strong> ${lab.capacity} students<br>
+                            <strong>Equipment:</strong> ${lab.equipment || 'Standard'}
+                        </p>
+                        <button type="button" class="btn btn-success btn-sm" 
+                                onclick="selectAlternativeLab('${lab.id}')">
+                            <i class="fas fa-check me-1"></i>Select This Lab
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function selectAlternativeLab(labId) {
+    const labSelect = document.getElementById('lab_id');
+    if (labSelect) {
+        labSelect.value = labId;
+        updateLabInfo();
+        checkAvailability();
+        showToast('Success', 'Laboratory selected', 'success');
+    }
+}
+
+function validateReservation() {
+    const labSelect = document.getElementById('lab_id');
+    const courseNameField = document.getElementById('course_name');
+    const sectionField = document.getElementById('section');
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    
+    if (!labSelect || !courseNameField || !sectionField || !startTimeField || !endTimeField) {
+        return false;
+    }
+    
+    const labId = labSelect.value;
+    const courseName = courseNameField.value;
+    const section = sectionField.value;
+    const startTime = startTimeField.value;
+    const endTime = endTimeField.value;
+    
+    // Basic validation
+    if (!labId) {
+        showToast('Error', 'Please select a laboratory', 'danger');
+        return false;
+    }
+    
+    if (!courseName.trim()) {
+        showToast('Error', 'Please enter a course name', 'danger');
+        return false;
+    }
+    
+    if (!section.trim()) {
+        showToast('Error', 'Please enter a section', 'danger');
+        return false;
+    }
+    
+    if (!startTime || !endTime) {
+        showToast('Error', 'Please select start and end times', 'danger');
+        return false;
+    }
+    
+    if (!validateTimeRange()) {
+        return false;
+    }
+    
+    // Check if we have availability data
+    const cacheKey = `${labId}-${startTime}-${endTime}`;
+    const availability = availabilityCache[cacheKey];
+    
+    if (availability && !availability.available) {
+        if (!confirm('This time slot appears to be unavailable. Do you still want to submit the request?')) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+        const form = document.getElementById('reservationForm');
+        if (form) {
+            form.reset();
+            initializeReservationForm();
+        }
+        const availableLabs = document.getElementById('availableLabs');
+        if (availableLabs) availableLabs.innerHTML = '';
+        const conflictAlert = document.getElementById('conflictAlert');
+        if (conflictAlert) conflictAlert.classList.add('d-none');
+        clearTimeError();
+        showToast('Info', 'Form has been reset', 'info');
+    }
+}
+
+// Quick reservation functions for common time slots
+function setQuickReservation(duration) {
+    const now = new Date();
+    let startTime = new Date();
+    
+    // Round to next half hour
+    startTime.setMinutes(Math.ceil(startTime.getMinutes() / 30) * 30);
+    startTime.setSeconds(0);
+    startTime.setMilliseconds(0);
+    
+    let endTime = new Date(startTime);
+    
+    switch(duration) {
+        case '1h':
+            endTime.setHours(endTime.getHours() + 1);
+            break;
+        case '2h':
+            endTime.setHours(endTime.getHours() + 2);
+            break;
+        case '3h':
+            endTime.setHours(endTime.getHours() + 3);
+            break;
+        case '4h':
+            endTime.setHours(endTime.getHours() + 4);
+            break;
+    }
+    
+    // Format for datetime-local input
+    const formatDateTime = (date) => {
+        return date.toISOString().slice(0, 16);
+    };
+    
+    const startTimeField = document.getElementById('start_time');
+    const endTimeField = document.getElementById('end_time');
+    const dateField = document.getElementById('reservationDate');
+    
+    if (startTimeField) startTimeField.value = formatDateTime(startTime);
+    if (endTimeField) endTimeField.value = formatDateTime(endTime);
+    if (dateField) dateField.value = startTime.toISOString().split('T')[0];
+    
+    updateDuration();
+    validateTimeRange();
+    checkAvailability();
+    
+    showToast('Success', `Set ${duration} reservation starting from ${startTime.toLocaleTimeString()}`, 'success');
+}
+
+// Auto-fill for common courses
+function autoFillCourse(course, section) {
+    const courseField = document.getElementById('course_name');
+    const sectionField = document.getElementById('section');
+    
+    if (courseField) courseField.value = course;
+    if (sectionField) sectionField.value = section;
+    showToast('Info', `Auto-filled ${course} - ${section}`, 'info');
+}
+</script>
+
+<style>
+.card.border-success {
+    border-width: 2px;
+}
+
+.availability-status {
+    font-weight: bold;
+}
+
+.available {
+    color: #28a745;
+}
+
+.unavailable {
+    color: #dc3545;
+}
+
+.quick-reservation-btn {
+    margin: 2px;
+}
+
+.auto-fill-btn {
+    margin: 1px;
+    font-size: 0.8rem;
+}
+</style>
+{% endblock %}
