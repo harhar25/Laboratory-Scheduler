@@ -1,0 +1,153 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('main.dashboard') }}">
+            <i class="fas fa-laptop-house me-2"></i>
+            <span class="d-none d-sm-inline">IT Lab System</span>
+        </a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav me-auto">
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.schedule') }}">
+                            <i class="fas fa-calendar-alt me-1"></i>Schedule
+                        </a>
+                    </li>
+                    
+                    {% if current_user.user_type == 'instructor' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.reservation_request') }}">
+                            <i class="fas fa-plus-circle me-1"></i>New Reservation
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if current_user.user_type == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-1"></i>Management
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('main.manage_labs') }}">Manage Labs</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.manage_instructors') }}">Manage Instructors</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.admin_requests') }}">Approve Requests</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports.reports') }}">Reports</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+            
+            <ul class="navbar-nav ms-auto">
+                {% if current_user.is_authenticated %}
+                <!-- Notifications -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell"></i>
+                        {% set unread_count = current_user.notifications|selectattr('is_read', 'equalto', false)|list|length %}
+                        {% if unread_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ unread_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end notification-dropdown">
+                        <li><h6 class="dropdown-header">Notifications</h6></li>
+                        <div class="notification-list">
+                            {% for notification in current_user.notifications[:5] %}
+                            <li>
+                                <a class="dropdown-item notification-item {% if not notification.is_read %}unread{% endif %}" 
+                                   href="#" 
+                                   onclick="markNotificationRead('{{ notification.id }}')">
+                                    <div class="fw-bold">{{ notification.title }}</div>
+                                    <small class="text-muted">{{ notification.message }}</small>
+                                    <div class="text-end">
+                                        <small>{{ notification.created_at.strftime('%m/%d %H:%M') }}</small>
+                                    </div>
+                                </a>
+                            </li>
+                            {% if not loop.last %}<li><hr class="dropdown-divider"></li>{% endif %}
+                            {% else %}
+                            <li><a class="dropdown-item text-muted" href="#">No notifications</a></li>
+                            {% endfor %}
+                        </div>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-center" href="{{ url_for('main.notifications') }}">View All</a></li>
+                    </ul>
+                </li>
+                
+                <!-- User Menu -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>
+                        {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text">
+                            <small>Logged in as <strong>{{ current_user.user_type|title }}</strong></small>
+                        </span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('auth.login') }}">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<script>
+function markNotificationRead(notificationId) {
+    fetch('/notifications/mark-read/' + notificationId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the unread styling and update badge count
+            const notificationItem = document.querySelector(`[onclick="markNotificationRead('${notificationId}')"]`);
+            notificationItem.classList.remove('unread');
+            
+            // Update notification badge count
+            updateNotificationBadge();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateNotificationBadge() {
+    const badge = document.querySelector('.badge.bg-danger');
+    if (badge) {
+        const currentCount = parseInt(badge.textContent);
+        if (currentCount > 1) {
+            badge.textContent = currentCount - 1;
+        } else {
+            badge.remove();
+        }
+    }
+}
+</script>
