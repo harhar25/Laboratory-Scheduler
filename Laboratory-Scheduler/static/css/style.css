@@ -1,0 +1,141 @@
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Login Styles */
+.login-card {
+    border: none;
+    border-radius: 15px;
+}
+
+.login-card .card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.card-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.card-warning {
+    background: linear-gradient(135deg, #f46b45 0%, #eea849 100%);
+    color: white;
+}
+
+.card-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+/* Calendar Styles */
+.calendar-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.time-slot {
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    margin: 2px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-slot.available {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.time-slot.reserved {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+.time-slot.conflict {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.time-slot:hover {
+    transform: scale(1.02);
+}
+
+/* Notification Styles */
+.notification-item {
+    border-left: 4px solid var(--secondary-color);
+    margin-bottom: 10px;
+}
+
+.notification-item.unread {
+    background-color: #f8f9fa;
+    border-left-color: var(--primary-color);
+}
+
+/* Responsive Table */
+.table-responsive {
+    border-radius: 10px;
+}
+
+/* Custom Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #1a252f;
+    border-color: #1a252f;
+}
+
+/* Navigation */
+.navbar-brand {
+    font-weight: bold;
+}
+
+.navbar-dark {
+    background-color: var(--primary-color) !important;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 0.25em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
