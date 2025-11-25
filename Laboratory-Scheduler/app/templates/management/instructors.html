@@ -90,17 +90,19 @@
                                             data-bs-target="#editInstructorModal{{ instructor.id }}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-{{ 'warning' if instructor.is_active else 'success' }} btn-sm"
-                                            onclick="toggleInstructorStatus({{ instructor.id }}, '{{ instructor.is_active|lower }}')">
-                                        <i class="fas fa-{{ 'pause' if instructor.is_active else 'play' }}"></i>
-                                    </button>
-                                    <button class="btn btn-outline-info btn-sm"
-                                            onclick="viewInstructorSchedule({{ instructor.id }})">
-                                        <i class="fas fa-calendar"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm"
-                                            onclick="deleteInstructor({{ instructor.id }}, '{{ instructor.full_name }}')">
-                                        <i class="fas fa-trash"></i>
+                              <button class="btn btn-outline-{{ 'warning' if instructor.is_active else 'success' }} btn-sm"
+                            onclick="toggleInstructorStatus('{{ instructor.id }}', '{{ instructor.is_active|lower }}')">
+                        <i class="fas fa-{{ 'pause' if instructor.is_active else 'play' }}"></i>
+                    </button>
+
+                    <button class="btn btn-outline-info btn-sm"
+                            onclick="viewInstructorSchedule('{{ instructor.id }}')">
+                        <i class="fas fa-calendar"></i>
+                    </button>
+
+                    <button class="btn btn-outline-danger btn-sm"
+                            onclick="deleteInstructor('{{ instructor.id }}', '{{ instructor.full_name }}')">
+                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </td>

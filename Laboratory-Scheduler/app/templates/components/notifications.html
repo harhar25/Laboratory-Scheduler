@@ -87,11 +87,12 @@
                             </div>
                             <div class="btn-group">
                                 {% if not notification.is_read %}
-                                <button class="btn btn-sm btn-outline-success" 
-                                        onclick="markNotificationRead({{ notification.id }})"
-                                        title="Mark as Read">
-                                    <i class="fas fa-check"></i>
-                                </button>
+                               <button class="btn btn-sm btn-outline-success" 
+                                onclick="markNotificationRead('{{ notification.id }}')"
+                                title="Mark as Read">
+                            <i class="fas fa-check"></i>
+                        </button>
+
                                 {% endif %}
                                 {% if notification.reservation %}
                                 <a href="{{ url_for('main.schedule') }}?reservation={{ notification.reservation.id }}" 
@@ -101,8 +102,7 @@
                                 </a>
                                 {% endif %}
                                 <button class="btn btn-sm btn-outline-danger" 
-                                        onclick="deleteNotification({{ notification.id }})"
-                                        title="Delete">
+                                onclick="deleteNotification('{{ notification.id }}')" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>

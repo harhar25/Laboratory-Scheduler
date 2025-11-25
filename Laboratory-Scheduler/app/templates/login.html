@@ -13,45 +13,63 @@
                 </div>
                 <div class="card-body p-4">
                     <form method="POST" action="{{ url_for('auth.login') }}">
-                        {{ form.hidden_tag() }}
+                        <!-- Remove CSRF for now since we're not using Flask-WTF -->
+                        <!-- {{ form.hidden_tag() }} -->
                         
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                {{ form.username(class="form-control", placeholder="Enter your username") }}
+                                <input type="text" 
+                                       name="username" 
+                                       class="form-control" 
+                                       placeholder="Enter your username"
+                                       value="{{ form.username.data if form.username.data }}"
+                                       required>
                             </div>
-                            {% if form.username.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.username.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                            <!-- Remove Flask-WTF error handling -->
+                            <!-- {% if form.username.errors %} -->
+                                <!-- <div class="text-danger"> -->
+                                    <!-- {% for error in form.username.errors %} -->
+                                        <!-- <small>{{ error }}</small> -->
+                                    <!-- {% endfor %} -->
+                                <!-- </div> -->
+                            <!-- {% endif %} -->
                         </div>
 
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                {{ form.password(class="form-control", placeholder="Enter your password") }}
+                                <input type="password" 
+                                       name="password" 
+                                       class="form-control" 
+                                       placeholder="Enter your password"
+                                       required>
                             </div>
-                            {% if form.password.errors %}
-                                <div class="text-danger">
-                                    {% for error in form.password.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                            <!-- Remove Flask-WTF error handling -->
+                            <!-- {% if form.password.errors %} -->
+                                <!-- <div class="text-danger"> -->
+                                    <!-- {% for error in form.password.errors %} -->
+                                        <!-- <small>{{ error }}</small> -->
+                                    <!-- {% endfor %} -->
+                                <!-- </div> -->
+                            <!-- {% endif %} -->
                         </div>
 
                         <div class="mb-3 form-check">
-                            {{ form.remember_me(class="form-check-input") }}
+                            <input type="checkbox" 
+                                   name="remember_me" 
+                                   class="form-check-input" 
+                                   id="remember_me"
+                                   {% if form.remember_me.data %}checked{% endif %}>
                             <label class="form-check-label" for="remember_me">Remember me</label>
                         </div>
 
                         <div class="d-grid mb-3">
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Login
+                            </button>
                         </div>
 
                         <div class="text-center">

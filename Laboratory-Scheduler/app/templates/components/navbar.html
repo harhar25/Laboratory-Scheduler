@@ -117,26 +117,57 @@
 </nav>
 
 <script>
+function getCSRFToken() {
+    // Try to get CSRF token from meta tag
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+        return csrfMeta.getAttribute('content');
+    }
+    
+    // Try to get from hidden input in forms
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    if (csrfInput) {
+        return csrfInput.value;
+    }
+    
+    // Return empty string if not found
+    return '';
+}
+
 function markNotificationRead(notificationId) {
-    fetch('/notifications/mark-read/' + notificationId, {
+    const csrfToken = getCSRFToken();
+    
+    fetch('/notifications/mark_read/' + notificationId, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Remove the unread styling and update badge count
             const notificationItem = document.querySelector(`[onclick="markNotificationRead('${notificationId}')"]`);
-            notificationItem.classList.remove('unread');
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+            }
             
             // Update notification badge count
             updateNotificationBadge();
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error marking notification as read:', error);
+        // Fallback: redirect to the mark read URL
+        window.location.href = '/notifications/mark_read/' + notificationId;
+    });
 }
 
 function updateNotificationBadge() {
@@ -150,4 +181,25 @@ function updateNotificationBadge() {
         }
     }
 }
+
+// Alternative simple version without CSRF token (if you're still having issues)
+/*
+function markNotificationRead(notificationId) {
+    // Simple version without CSRF protection
+    fetch('/notifications/mark_read/' + notificationId, {
+        method: 'GET'  // Change to GET to avoid CSRF issues
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const notificationItem = document.querySelector(`[onclick="markNotificationRead('${notificationId}')"]`);
+            if (notificationItem) {
+                notificationItem.classList.remove('unread');
+            }
+            updateNotificationBadge();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+*/
 </script>
